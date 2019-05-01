@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,7 +19,8 @@ import tftp.shared.*;
  *
  * @author alawren3
  */
-public class S_TFTPW {
+public class S_TFTPD {
+
     private static final Constants C= new Constants();
     //private static final String PATH_TO_STORAGE = "/home/alawren3/Desktop/storage";
     private static DatagramSocket socket;
@@ -33,21 +33,23 @@ public class S_TFTPW {
     private static ByteArrayOutputStream buffer;
     private static int index;
     
-    @SuppressWarnings("empty-statement")
     public static void main() {
-        
+        try {
+            constructor();
+        } catch (SocketException ex) {
+            Logger.getLogger(S_TFTPN.class.getName()).log(Level.SEVERE, null, ex);
+            return;
+        }
         while(true){
-            try {
-                constructor();
-            } catch (SocketException ex) {
-                Logger.getLogger(S_TFTPN.class.getName()).log(Level.SEVERE, null, ex);
-                return;
-            }
+            int AD = 10;
+            int count = 0;
+            
             index = 0;
             reciever = new DatagramPacket(new byte[C.DATA_SIZE*5],C.DATA_SIZE*5);
             
             while(true){
                 try {
+                    System.out.println("waiting for first packet");
                     socket.receive(reciever);
                     deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
                     if(deCodeNode.blockNum==index){
@@ -64,81 +66,48 @@ public class S_TFTPW {
                     }
                     System.out.println("looking for index 0 got: "+deCodeNode.blockNum);
                 } catch (IOException ex) {
-                    System.out.println("IO exception? for receiveing write block");
-                    ex.printStackTrace();
+                    System.out.println("IO exception?");
                     return;
                 }
             }
-            
-            try {
-                socket.setSoTimeout(C.TIMEOUT_WINDOW);
-            } catch (SocketException ex) {
-                Logger.getLogger(S_TFTPW.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            index = 0;
-            int lastPacketNum = -2;
             HashMap<Integer,byte[]> data = new HashMap<>();
-            int lastPacketRemainder = C.WINDOW_SIZE-1;
-            int growth = 0;
+            reciever = new DatagramPacket(new byte[C.DATA_SIZE+8], C.DATA_SIZE+8);
             do{
-                if(lastPacketNum+1==index){
-                    break;
-                }
-                int recievedPackets = 0;
                 try{
+                    socket.receive(reciever);
                     
-                    for(int i=0;i<C.WINDOW_SIZE+growth;i++){
-                        socket.receive(reciever);
-                        recievedPackets++;
-                        deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
-                        System.out.println("got packet: "+deCodeNode.blockNum);
-                        if(!data.containsKey(deCodeNode.blockNum)){
-                            data.put(deCodeNode.blockNum, deCodeNode.data);
-                        }
-
-                        if(deCodeNode.blockNum==index){//increment index if order is maintained
-                            index++;
-                        }
-                        
-                        if(deCodeNode.data.length<C.DATA_SIZE){//check if last packet in system
-                            lastPacketNum=deCodeNode.blockNum;
-                            break;
-                        }
-                        
-                        /*if(deCodeNode.blockNum%C.WINDOW_SIZE==lastPacketRemainder){//check if last packet in window 
-                            break;
-                        }*/
+                    if(count == AD){
+                        System.out.println("dropped packet");
+                        count = 0;continue;
                     }
+                    else{count++;}
                     
-                    if(recievedPackets==C.WINDOW_SIZE+growth){
-                        growth++;
-                    }else if(growth>0){
-                        growth--;
-                    }
-                    
-                    enCodeNode = new EnCodeNode(index);
-                    sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
-                    socket.send(sender);
-                    
-                } catch(SocketTimeoutException ex){//to handle last packet in window dropped;
-                    try{
-                    enCodeNode = new EnCodeNode(index);
-                    sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
-                    socket.send(sender);
-                    } catch (IOException ex1) {
-                        Logger.getLogger(S_TFTPW.class.getName()).log(Level.SEVERE, null, ex1);
+                    deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
+                    System.out.println("packet: "+deCodeNode.blockNum);
+                    System.out.println("index: "+index);
+                    System.out.println("");
+                    if(deCodeNode.blockNum==index){
+                        index++;
+                        data.put(deCodeNode.blockNum,deCodeNode.data);
+                        System.out.println("going to send ack: "+index);
+                        enCodeNode = new EnCodeNode(index);
+                        sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
+                        socket.send(sender);
+                    }else if(deCodeNode.blockNum!=index || deCodeNode.data==null){
+                        enCodeNode = new EnCodeNode(index);
+                        sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
+                        socket.send(sender);
                     }
                 }catch (IOException ex) {
-                    Logger.getLogger(S_TFTPW.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("IO exception?");
+                    return;
                 }
-            }while(true);
-            
+            }while(deCodeNode.data.length==C.DATA_SIZE);
             
             //make file
             fileParser = new FileParser(fileName);
             try{
-                for(int i=0;i<data.size();i++){
+                for(int i=1;i<=data.size();i++){
                     buffer.write(data.get(i));
                 }
                 fileParser.fillFile(buffer.toByteArray());
@@ -149,6 +118,12 @@ public class S_TFTPW {
             }
             System.out.println("done");
             socket.close();
+            try {
+                constructor();
+            } catch (SocketException ex) {
+                Logger.getLogger(S_TFTPN.class.getName()).log(Level.SEVERE, null, ex);
+                return;
+            }
         }
     }
     
@@ -157,7 +132,5 @@ public class S_TFTPW {
         fileParser = new FileParser();
         buffer = new ByteArrayOutputStream();
     }
-    
-    
     
 }

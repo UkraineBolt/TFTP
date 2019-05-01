@@ -21,18 +21,22 @@ public class Main {
         String in1;
         do{
             System.out.println("s or c");
-            in1 = s.nextLine();
+            in1 = //"c";
+                s.nextLine();
             if(in1.equals("s")){
-                System.out.println("n or w");
+                System.out.println("n, w or d");
                 in1 = s.nextLine();
                 if(in1.equals("n")){
                     tftp.server.S_TFTPN.main();
                 }else if(in1.equals("w")){
                     tftp.server.S_TFTPW.main();
+                }else if(in1.equals("d")){
+                    tftp.server.S_TFTPD.main();
                 }
             }else if(in1.equals("c")){
-                System.out.println("n, w, d, or 6");
-                in1 = s.nextLine();
+                System.out.println("n, w, or 6");
+                in1 = //"6";
+                   s.nextLine();
                 if(in1.equals("n")||in1.equals("w")||in1.equals("d")||in1.equals("6")){
                     tftp.client.UserInterface.main(in1);
                 }

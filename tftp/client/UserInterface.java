@@ -24,33 +24,26 @@ public class UserInterface {
      */
     public static void main(String args) {
         Scanner s = new Scanner(System.in);
-        while (true) {
-            System.out.println("enter a file");
-            String input = s.nextLine();
-            if (input.equals("quit")) {
-                break;
-            }
-            ArrayList<File> files = new FileParser().getAllFiles(input); //throwing io for this line
-            for (int i = 0; i < files.size(); i++) {
-                
-                try {//need half second delay between each file otherwise the client and server arent sync.
-                    Thread.sleep(500);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(UserInterface.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                
-                if (args.equals("n")) {
-                    TFTPN.main(files.get(i),input);
-                } else if (args.equals("w")) {
-                    TFTPW.main(files.get(i),input);
-                } else if (args.equals("d")) {
-                    TFTPD.main(files.get(i),input);
-                } else if (args.equals("6")) {
-                    TFTP6.main(files.get(i),input);
-                }
-            }
+            
+        System.out.println("enter a file");
+        String input = "/home/alawren3/Pictures/b";//s.nextLine();
 
+        ArrayList<File> files = new FileParser().getAllFiles(input); //throwing io for this line
+
+        long start = System.nanoTime();
+        for (int i = 0; i < files.size(); i++) {
+            if (args.equals("n")) {
+                TFTPN.main(files.get(i),input);
+            } else if (args.equals("w")) {
+                TFTPW.main(files.get(i),input);
+            } else if (args.equals("6")) {
+                TFTP6.main(files.get(i),input);
+            }
         }
+        long time = System.nanoTime()-start;
+        System.out.println(time * .000000001);
+        System.exit(0);
+        
     }
 
 }

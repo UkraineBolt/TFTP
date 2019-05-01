@@ -39,35 +39,7 @@ public class TFTPN {
         } catch (SocketException ex) {
             return;
         }
-        //send request
         
-        try{
-            if(args.toString().equals(dir)){
-                enCodeNode = new EnCodeNode(index,args.toString());
-                System.out.println(args.toString());
-            }else{
-                enCodeNode = new EnCodeNode(index,args.toString()+" *@* "+dir);
-                System.out.println(args.toString());
-                System.out.println(dir);
-            }
-            sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),C.inet4,C.PORT);
-            socket.send(sender);
-            socket.receive(reciever);
-            deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
-            System.out.println("ack: "+deCodeNode.blockNum+"\n");
-            if(deCodeNode.blockNum!=index+1){
-                System.out.println("unexpected block num: "+deCodeNode.blockNum);
-                return;
-            }
-            index = deCodeNode.blockNum;
-        } catch (SocketTimeoutException  ex) {
-            System.out.println("time out for wqr");
-        } catch (IOException ex) {
-            System.out.println("io error with request");
-            return;
-        }
-        
-        //get data
         ByteBuffer data;
         try {
             data = ByteBuffer.wrap(Files.readAllBytes(args.toPath()));
@@ -75,6 +47,38 @@ public class TFTPN {
             System.out.println("couldnt get the data");
             return;
         }
+        
+        //send request
+        while(true){
+            try{
+                if(args.toString().equals(dir)){
+                    enCodeNode = new EnCodeNode(index,args.toString());
+                    System.out.println(args.toString());
+                }else{
+                    enCodeNode = new EnCodeNode(index,args.toString()+" *@* "+dir);
+                    System.out.println(args.toString());
+                    System.out.println(dir);
+                }
+                sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),C.inet4,C.PORT);
+                socket.send(sender);
+                socket.receive(reciever);
+                deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
+                System.out.println("ack: "+deCodeNode.blockNum+"\n");
+                if(deCodeNode.blockNum!=index+1){
+                    System.out.println("unexpected block num: "+deCodeNode.blockNum);
+                    return;
+                }
+                index = deCodeNode.blockNum;
+                break;
+            } catch (SocketTimeoutException  ex) {
+                System.out.println("time out for wqr");
+            } catch (IOException ex) {
+                System.out.println("io error with request");
+                return;
+            }
+        }
+        
+        
         
         //send all but last packet
         byte[] buffer = new byte[C.DATA_SIZE];
@@ -92,6 +96,7 @@ public class TFTPN {
                         index = deCodeNode.blockNum;
                         break;
                     }else{ //if they dont match
+                        System.out.println("dont match");
                         data.position(deCodeNode.blockNum-1);
                         index = deCodeNode.blockNum;
                         break;
@@ -111,16 +116,16 @@ public class TFTPN {
         data.get(buffer);
         while(true){
             try{
+                System.out.println("packet: "+deCodeNode.blockNum);
                 enCodeNode = new EnCodeNode(deCodeNode.blockNum,buffer);
                 sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),C.inet4,C.PORT);
                 socket.send(sender);
                 socket.receive(reciever);
                 deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
+                System.out.println("last packet: "+deCodeNode.blockNum);
                 if(deCodeNode.blockNum==index+1){
                     index = deCodeNode.blockNum;
                     break;
-                }else{
-                    
                 }
             }catch (SocketTimeoutException  ex) {
                 System.out.println("time out for packet: "+deCodeNode.blockNum);
@@ -128,6 +133,7 @@ public class TFTPN {
                 System.out.println("io exception");
             } 
         }
+        socket.close();
         System.out.println("done with file: "+args.getName());
         
     }

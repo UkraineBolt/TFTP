@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import tftp.shared.Constants;
 import tftp.shared.FileParser;
 /**
@@ -28,8 +29,9 @@ public class test {
         System.out.println(b.get(0).getName());*/
         
         
-        ByteBuffer bb = ByteBuffer.allocate(12);
+        /*ByteBuffer bb = ByteBuffer.allocate(12);
         bb.putInt(5);bb.putInt(10);bb.putInt(17);
+        
         /*bb.position(0);
         bb.getInt();
         byte[] left = new byte[8];
@@ -38,13 +40,29 @@ public class test {
         /*for(int i=0;i<left.length;i++){
             System.out.println(left[i]);
         }*/
-        byte[] temp = bb.array();
+        
+        /*byte[] temp = bb.array();
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         stream.write(temp);
         temp = stream.toByteArray();
         for(int i=0;i<temp.length;i++){
             System.out.println(temp[i]);
-        }
+        }*/
+        
+        /*ArrayList<Integer> bark = new ArrayList<>();
+        bark.add(4);
+        bark.add(2);
+        bark.add(0);
+        bark.add(5);
+        bark.add(3);
+        Collections.sort(bark);
+        System.out.println(bark.toString());*/
+        
+        System.out.println(15%16);
+        System.out.println(31%16);
+        System.out.println(4%16);
+        System.out.println(20%16);
+        
     }
     
 }

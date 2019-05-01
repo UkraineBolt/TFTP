@@ -34,13 +34,13 @@ public class S_TFTPN {
     
     public static void main() {
         
-        try {
-            constructor();
-        } catch (SocketException ex) {
-            Logger.getLogger(S_TFTPN.class.getName()).log(Level.SEVERE, null, ex);
-            return;
-        }
         while(true){
+            try {
+                constructor();
+            } catch (SocketException ex) {
+                Logger.getLogger(S_TFTPN.class.getName()).log(Level.SEVERE, null, ex);
+                return;
+            }
             index = 0;
             reciever = new DatagramPacket(new byte[C.DATA_SIZE*5],C.DATA_SIZE*5);
             
@@ -74,15 +74,15 @@ public class S_TFTPN {
                     deCodeNode = new DeCodeNode(reciever.getData(),reciever.getLength());
                     System.out.println("packet: "+deCodeNode.blockNum);
                     System.out.println("index: "+index);
-                    System.out.println("");
                     if(deCodeNode.blockNum==index){
                         index++;
                         data.put(deCodeNode.blockNum,deCodeNode.data);
                         System.out.println("going to send ack: "+index);
+                        System.out.println("");
                         enCodeNode = new EnCodeNode(index);
                         sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
                         socket.send(sender);
-                    }else if(deCodeNode.blockNum<=index || deCodeNode.blockNum>=index){//this handles the case of the last ack being dropped.
+                    }else if(deCodeNode.blockNum!=index || deCodeNode.data==null){//this handles the case of the last ack being dropped.
                         enCodeNode = new EnCodeNode(index);
                         sender = new DatagramPacket(enCodeNode.getHeader(),enCodeNode.getSize(),reciever.getAddress(),reciever.getPort());
                         socket.send(sender);
@@ -106,6 +106,8 @@ public class S_TFTPN {
                 System.out.println("didnt get all data rip");
             }
             System.out.println("done");
+            socket.close();
+            
         }
     }
     
